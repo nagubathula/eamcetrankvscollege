@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engineering Institutions Counselling Filter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        .loading-spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        function showInstitutionDetails(institutionName) {
+            console.log('showInstitutionDetails called with:', institutionName); // Debug log
+            
+            // Find all branches for this institution from the original data
+            const institutionBranches = institutions.filter(inst => {
+                const name = inst.Name || inst.name || inst.NAME || '';
+                return name === institutionName;
+            });
+
+            console.log('Found branches:', institutionBranches.length); // Debug log
+
+            if (institutionBranches.length === 0) {
+                alert('No data found for this institution');
+                return;
+            }
+
+            // Sort branches by OC_BOYS rank
+            institutionBranches.sort((a, b) => {
+                const rankA = parseInt(a.OC_BOYS || a.oc_boys || a.Oc_Boys || Infinity, 10);
+                const rankB = parseInt(b.OC_BOYS || b.oc_boys || b.Oc_Boys || Infinity, 10);
+                return rankA - rankB;
+            });
+
+            const modal = document.getElementById('institutionModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+
+            if (!modal || !modalTitle || !modalContent) {
+                alert('Modal elements not found');
+                return;
+            }
+
+            modalTitle.textContent = institutionName;
+
+            // Get institution details
+            const firstBranch = institutionBranches[0];
+            const district = firstBranch.DIST || firstBranch.District || firstBranch.district || '';
+            const type = firstBranch.TYPE || firstBranch.Type || firstBranch.type || '';
+
+            modalContent.innerHTML = `
+                <div class="mb-6">
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div><strong>District:</strong> ${district}</div>
+                        <div><strong>Type:</strong> ${type}</div>
+                        <div><strong>Total Branches:</strong> ${institutionBranches.length}</div>
+                        <div><strong>Best Rank:</strong> ${Math.min(...institutionBranches.map(b => parseInt(b.OC_BOYS || b.oc_boys || b.Oc_Boys || Infinity, 10)))}</div>
+                    </div>
+                </div>
+
+                <div class="border rounded-lg overflow-hidden">
+                    <div class="bg-gray-50 px-4 py-3 border-b">
+                        <h4 class="font-semibold text-gray-900">All Available Branches & Closing Ranks</h4>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch Code</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch Name</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">OC_BOYS Closing Rank</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${institutionBranches.map((branch, index) => {
+                                    const branchCode = branch.branch_code || branch.BRANCH_CODE || branch.Branch_Code || '';
+                                    const branchName = branch.Branch || branch.branch || branch.BRANCH || '';
+                                    const rank = branch.OC_BOYS || branch.oc_boys || branch.Oc_Boys || '';
+                                    const fee = branch.COLLFEE || branch.Fee || branch.fee || branch.CollegeFee || '';
+                                    
+                                    return `
+                                        <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    ${branchCode}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-gray-900">${branchName}</td>
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    ${rank}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm font-medium text-gray-900">${fee}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button id="closeModalBtn" 
+                            class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                        Close
+                    </button>
+                </div>
+            `;
+
+            // Add close button event listener
+            document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            
+            console.log('Modal should be visible now'); // Debug log
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('institutionModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
+        // Make sure all functions are globally accessible
+        window.openInstitutionModal = openInstitutionModal;
+        window.closeModal = closeModal;
+        window.applyFilters = applyFilters;
+        window.toggleRankMode = toggleRankMode;
+
+        // Close modal when clicking outside
+        document.getElementById('institutionModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .dropdown-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .dropdown-content.expanded {
+            max-height: 1000px;
+            transition: max-height 0.3s ease-in;
+        }
+        
+        .dropdown-arrow {
+            transition: transform 0.3s ease;
+        }
+        
+        .dropdown-arrow.expanded {
+            transform: rotate(180deg);
+        }
+        
+        .sticky {
+            position: sticky;
+        }
+        
+        .table-sticky-hover:hover .sticky-col {
+            background-color: rgb(239 246 255) !important; /* blue-50 */
+        }
+        
+        .slide-down {
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Engineering Counselling Filter</h1>
+                    <p class="mt-1 text-sm text-gray-500">Find the best engineering institutions based on your rank</p>
+                </div>
+                <div class="hidden sm:block">
+                    <div class="flex items-center space-x-2 text-sm text-gray-500">
+                        <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+                        <span id="status-text">Ready</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Info Card -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 fade-in">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">How to use this filter</h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <ul class="list-disc list-inside space-y-1">
+                            <li><strong>Your Rank:</strong> Enter your rank to see institutions where you're eligible for admission (institutions with closing ranks at or above your rank)</li>
+                            <li><strong>Rank Range:</strong> Toggle range mode to see all institutions with closing ranks within a specific range</li>
+                            <li><strong>Institution Details:</strong> Click on any institution name to view all available branches with closing ranks for all categories (OC, SC, ST, BC, EWS - Boys & Girls)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="bg-white rounded-lg shadow-sm border p-6 mb-8">
+            <h2 class="text-lg font-semibold text-gray-900 mb-6">Filter Options</h2>
+            
+            <!-- Filter Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Branch</label>
+                    <select id="branchFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                        <option value="">All Branches</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Branch Code</label>
+                    <select id="branchCodeFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                        <option value="">All Codes</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Institution Type</label>
+                    <select id="typeFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                        <option value="">All Types</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                    <input type="text" id="searchFilter" placeholder="Search institutions..." 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                </div>
+            </div>
+
+            <!-- Rank Filters -->
+            <div class="border-t pt-6">
+                <div class="flex items-center mb-4">
+                    <input type="checkbox" id="useRangeMode" onchange="toggleRankMode()" 
+                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <label for="useRangeMode" class="ml-2 text-sm font-medium text-gray-700">Use Rank Range instead of single rank</label>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div id="singleRankSection">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Your OC_BOYS Rank</label>
+                        <input type="number" id="rankFilter" placeholder="Enter your rank" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                    </div>
+                    
+                    <div id="rangeSection" style="display: none;" class="md:col-span-2">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Min Rank</label>
+                                <input type="number" id="minRankFilter" placeholder="Enter min rank" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Max Rank</label>
+                                <input type="number" id="maxRankFilter" placeholder="Enter max rank" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Apply Button -->
+            <div class="mt-6 flex justify-center">
+                <button onclick="applyFilters()" 
+                        class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                    <span id="apply-text">Apply Filters</span>
+                    <div id="apply-spinner" class="loading-spinner ml-2" style="display: none;"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-12">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-gray-600">Loading institution data...</p>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" style="display: none;" class="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">Search Results</h2>
+                    <div id="resultsCount" class="text-sm text-gray-500"></div>
+                </div>
+            </div>
+            
+            <!-- Table Container -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Institution Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Available Branches</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">District</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Best OC_BOYS Rank</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee Range</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTableBody" class="bg-white divide-y divide-gray-200">
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- No Results -->
+            <div id="noResults" style="display: none;" class="text-center py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No institutions found</h3>
+                <p class="mt-1 text-sm text-gray-500">Try adjusting your filter criteria to see more results.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let institutions = [];
+        let isLoading = true;
+
+        function updateStatus(text, isLoading = false) {
+            const statusText = document.getElementById('status-text');
+            const dot = statusText.previousElementSibling;
+            
+            statusText.textContent = text;
+            
+            if (isLoading) {
+                dot.className = 'w-2 h-2 bg-yellow-400 rounded-full animate-pulse';
+            } else {
+                dot.className = 'w-2 h-2 bg-green-400 rounded-full';
+            }
+        }
+
+        function toggleRankMode() {
+            const useRange = document.getElementById('useRangeMode').checked;
+            const rankFilter = document.getElementById('rankFilter');
+            const singleRankSection = document.getElementById('singleRankSection');
+            const rangeSection = document.getElementById('rangeSection');
+
+            if (useRange) {
+                rangeSection.style.display = 'block';
+                rangeSection.classList.add('slide-down');
+                singleRankSection.style.display = 'none';
+                rankFilter.value = '';
+            } else {
+                rangeSection.style.display = 'none';
+                singleRankSection.style.display = 'block';
+                singleRankSection.classList.add('slide-down');
+                document.getElementById('minRankFilter').value = '';
+                document.getElementById('maxRankFilter').value = '';
+            }
+        }
+
+        // Load data
+        updateStatus('Loading data...', true);
+        fetch('interdata.xlsx')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load data file');
+                }
+                return response.arrayBuffer();
+            })
+            .then(data => {
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                institutions = XLSX.utils.sheet_to_json(sheet);
+
+                populateFilters();
+                showResults();
+                updateStatus(`Loaded ${institutions.length} institutions`);
+                
+                // Hide loading, show results
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('resultsSection').style.display = 'block';
+                document.getElementById('resultsSection').classList.add('fade-in');
+                
+                isLoading = false;
+                applyFilters();
+            })
+            .catch(error => {
+                console.error('Error loading data:', error);
+                updateStatus('Error loading data');
+                document.getElementById('loadingState').innerHTML = `
+                    <div class="text-center py-12">
+                        <svg class="mx-auto h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">Failed to load data</h3>
+                        <p class="mt-1 text-sm text-gray-500">Please make sure the 'interdata.xlsx' file is available and try refreshing the page.</p>
+                    </div>
+                `;
+            });
+
+        function showResults() {
+            document.getElementById('resultsSection').style.display = 'block';
+        }
+
+        function populateFilters() {
+            fillDropdown('branchFilter', getUnique('Branch'), 'All Branches');
+            fillDropdown('branchCodeFilter', getBranchCodes(), 'All Codes');
+            fillDropdown('typeFilter', getUnique('Type'), 'All Types');
+        }
+
+        function getBranchCodes() {
+            const branchCodes = [
+                'AER', 'AGR', 'AIM', 'AID', 'AI', 'AUT', 'BIO', 'BDT', 'CAD', 'CAI',
+                'CBC', 'CCE', 'CCG', 'CCI', 'CHE', 'CIC', 'CIV', 'CSE', 'CSG', 'CSB',
+                'CSC', 'CSD', 'CSM', 'CSO', 'CSW', 'CST', 'CSS', 'DS', 'EBM', 'ECES',
+                'ECM', 'ECE', 'ECT', 'EEE', 'EIE', 'EVT', 'FDE', 'FDT', 'GIN', 'INF',
+                'IST', 'IOT', 'MAU', 'MAD', 'MEC', 'MIN', 'MRB', 'NAM', 'PET', 'PHM',
+                'PHD', 'RBT', 'SWE'
+            ];
+            return branchCodes.sort();
+        }
+
+        function getUnique(field) {
+            const values = institutions.map(inst => {
+                return inst[field] || inst[field.toLowerCase()] || inst[field.toUpperCase()] ||
+                    inst[field.replace('_', '')] || inst[field.replace(' ', '_')];
+            }).filter(x => x !== undefined && x !== "" && x !== null);
+            return Array.from(new Set(values)).sort();
+        }
+
+        function fillDropdown(id, items, placeholder) {
+            const select = document.getElementById(id);
+            select.innerHTML = `<option value="">${placeholder}</option>` +
+                items.map(item => `<option value="${item}">${item}</option>`).join('');
+        }
+
+        function applyFilters() {
+            if (isLoading) return;
+            
+            // Show loading on button
+            const applyText = document.getElementById('apply-text');
+            const applySpinner = document.getElementById('apply-spinner');
+            applyText.textContent = 'Filtering...';
+            applySpinner.style.display = 'block';
+            
+            // Small delay for UX
+            setTimeout(() => {
+                const branch = document.getElementById('branchFilter').value;
+                const branchCode = document.getElementById('branchCodeFilter').value;
+                const type = document.getElementById('typeFilter').value;
+                const search = document.getElementById('searchFilter').value.toLowerCase();
+                const useRange = document.getElementById('useRangeMode').checked;
+
+                let userRank, minRank, maxRank;
+
+                if (useRange) {
+                    minRank = parseInt(document.getElementById('minRankFilter').value, 10);
+                    maxRank = parseInt(document.getElementById('maxRankFilter').value, 10);
+                } else {
+                    userRank = parseInt(document.getElementById('rankFilter').value, 10);
+                }
+
+                const filtered = institutions.filter(inst => {
+                    const ocBoysRank = parseInt(inst.OC_BOYS, 10);
+                    const institutionName = (inst.Name || inst.name || inst.NAME || '').toLowerCase();
+
+                    // Skip institutions without valid OC_BOYS rank data
+                    if (isNaN(ocBoysRank)) return false;
+
+                    // Search filter
+                    if (search && !institutionName.includes(search)) return false;
+
+                    // Basic filters
+                    if (branch && inst.Branch !== branch && inst.branch !== branch) return false;
+                    if (branchCode && inst.branch_code !== branchCode && inst.BRANCH_CODE !== branchCode && inst.Branch_Code !== branchCode) return false;
+                    if (type && inst.Type !== type && inst.TYPE !== type && inst.type !== type) return false;
+
+                    // Rank filters
+                    if (useRange) {
+                        if (!isNaN(minRank) && !isNaN(maxRank)) {
+                            return ocBoysRank >= minRank && ocBoysRank <= maxRank;
+                        } else if (!isNaN(minRank)) {
+                            return ocBoysRank >= minRank;
+                        } else if (!isNaN(maxRank)) {
+                            return ocBoysRank <= maxRank;
+                        }
+                    } else {
+                        if (!isNaN(userRank)) {
+                            return ocBoysRank >= userRank;
+                        }
+                    }
+
+                    return true;
+                });
+
+                // Sort by OC_BOYS closing rank
+                filtered.sort((a, b) => {
+                    const rankA = parseInt(a.OC_BOYS, 10) || Infinity;
+                    const rankB = parseInt(b.OC_BOYS, 10) || Infinity;
+                    return rankA - rankB;
+                });
+
+                displayResults(filtered);
+                
+                // Reset button
+                applyText.textContent = 'Apply Filters';
+                applySpinner.style.display = 'none';
+            }, 300);
+        }
+
+        function displayResults(filtered) {
+            const tbody = document.getElementById('resultsTableBody');
+            const noResults = document.getElementById('noResults');
+            const resultsCount = document.getElementById('resultsCount');
+            
+            // Group institutions by name
+            const groupedInstitutions = {};
+            
+            filtered.forEach(inst => {
+                const institutionName = inst.Name || inst.name || inst.NAME || '';
+                
+                if (!groupedInstitutions[institutionName]) {
+                    groupedInstitutions[institutionName] = {
+                        name: institutionName,
+                        branches: [],
+                        district: inst.DIST || inst.District || inst.district || '',
+                        type: inst.TYPE || inst.Type || inst.type || '',
+                        ranks: [],
+                        fees: []
+                    };
+                }
+                
+                const branchCode = inst.branch_code || inst.BRANCH_CODE || inst.Branch_Code || '';
+                const rank = parseInt(inst.OC_BOYS || inst.oc_boys || inst.Oc_Boys || 0, 10);
+                const fee = inst.COLLFEE || inst.Fee || inst.fee || inst.CollegeFee || '';
+                
+                if (branchCode && !groupedInstitutions[institutionName].branches.includes(branchCode)) {
+                    groupedInstitutions[institutionName].branches.push(branchCode);
+                }
+                
+                if (!isNaN(rank) && rank > 0) {
+                    groupedInstitutions[institutionName].ranks.push(rank);
+                }
+                
+                if (fee && !groupedInstitutions[institutionName].fees.includes(fee)) {
+                    groupedInstitutions[institutionName].fees.push(fee);
+                }
+            });
+            
+            // Convert to array and sort by best rank
+            const uniqueInstitutions = Object.values(groupedInstitutions)
+                .map(inst => ({
+                    ...inst,
+                    bestRank: Math.min(...inst.ranks),
+                    worstRank: Math.max(...inst.ranks)
+                }))
+                .sort((a, b) => a.bestRank - b.bestRank);
+            
+            resultsCount.textContent = `${uniqueInstitutions.length} unique institution${uniqueInstitutions.length !== 1 ? 's' : ''} found`;
+            
+            if (uniqueInstitutions.length === 0) {
+                tbody.innerHTML = '';
+                noResults.style.display = 'block';
+            } else {
+                noResults.style.display = 'none';
+                tbody.innerHTML = uniqueInstitutions.map((inst, index) => {
+                    const branchesHtml = inst.branches.length > 3 
+                        ? `<div class="flex flex-wrap gap-1">
+                             ${inst.branches.slice(0, 3).map(branch => 
+                                 `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">${branch}</span>`
+                             ).join('')}
+                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">+${inst.branches.length - 3} more</span>
+                           </div>`
+                        : `<div class="flex flex-wrap gap-1">
+                             ${inst.branches.map(branch => 
+                                 `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">${branch}</span>`
+                             ).join('')}
+                           </div>`;
+                    
+                    const rankDisplay = inst.bestRank === inst.worstRank 
+                        ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">${inst.bestRank}</span>`
+                        : `<div class="space-y-1">
+                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">${inst.bestRank}</span>
+                             <div class="text-xs text-gray-500">Best of ${inst.ranks.length} branches</div>
+                           </div>`;
+                    
+                    const feeDisplay = inst.fees.length === 1 
+                        ? inst.fees[0]
+                        : inst.fees.length > 1 
+                            ? `${Math.min(...inst.fees.map(f => parseInt(f) || 0))} - ${Math.max(...inst.fees.map(f => parseInt(f) || 0))}`
+                            : '';
+                    
+                    // Get all branches for this institution from original data
+                    const allBranches = institutions.filter(branch => {
+                        const name = branch.Name || branch.name || branch.NAME || '';
+                        return name === inst.name;
+                    }).sort((a, b) => {
+                        const rankA = parseInt(a.OC_BOYS || a.oc_boys || a.Oc_Boys || Infinity, 10);
+                        const rankB = parseInt(b.OC_BOYS || b.oc_boys || b.Oc_Boys || Infinity, 10);
+                        return rankA - rankB;
+                    });
+                    
+                    const branchDetailsHtml = allBranches.map((branch, branchIndex) => {
+                        const branchCode = branch.branch_code || branch.BRANCH_CODE || branch.Branch_Code || '';
+                        const branchName = branch.Branch || branch.branch || branch.BRANCH || '';
+                        const fee = branch.COLLFEE || branch.Fee || branch.fee || branch.CollegeFee || '';
+                        
+                        // All category ranks
+                        const ocBoys = branch.OC_BOYS || branch.oc_boys || branch.Oc_Boys || '-';
+                        const ocGirls = branch.OC_GIRLS || branch.oc_girls || branch.Oc_Girls || '-';
+                        const scBoys = branch.SC_BOYS || branch.sc_boys || branch.Sc_Boys || '-';
+                        const scGirls = branch.SC_GIRLS || branch.sc_girls || branch.Sc_Girls || '-';
+                        const stBoys = branch.ST_BOYS || branch.st_boys || branch.St_Boys || '-';
+                        const stGirls = branch.ST_GIRLS || branch.st_girls || branch.St_Girls || '-';
+                        const bcaBoys = branch.BCA_BOYS || branch.bca_boys || branch.Bca_Boys || '-';
+                        const bcaGirls = branch.BCA_GIRLS || branch.bca_girls || branch.Bca_Girls || '-';
+                        const bcbBoys = branch.BCB_BOYS || branch.bcb_boys || branch.Bcb_Boys || '-';
+                        const bcbGirls = branch.BCB_GIRLS || branch.bcb_girls || branch.Bcb_Girls || '-';
+                        const bccBoys = branch.BCC_BOYS || branch.bcc_boys || branch.Bcc_Boys || '-';
+                        const bccGirls = branch.BCC_GIRLS || branch.bcc_girls || branch.Bcc_Girls || '-';
+                        const bcdBoys = branch.BCD_BOYS || branch.bcd_boys || branch.Bcd_Boys || '-';
+                        const bcdGirls = branch.BCD_GIRLS || branch.bcd_girls || branch.Bcd_Girls || '-';
+                        const bceBoys = branch.BCE_BOYS || branch.bce_boys || branch.Bce_Boys || '-';
+                        const bceGirls = branch.BCE_GIRLS || branch.bce_girls || branch.Bce_Girls || '-';
+                        const ocEwsBoys = branch.OC_EWS_BOYS || branch.oc_ews_boys || branch.Oc_Ews_Boys || '-';
+                        const ocEwsGirls = branch.OC_EWS_GIRLS || branch.oc_ews_girls || branch.Oc_Ews_Girls || '-';
+                        
+                        return `
+                            <tr class="${branchIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors">
+                                <td class="px-4 py-3 sticky left-0 ${branchIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'} z-10 border-r border-gray-200">
+                                    <div class="flex flex-col space-y-1">
+                                        <span class="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800">${branchCode}</span>
+                                        <span class="text-xs text-gray-700 font-medium">${branchName}</span>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${ocBoys !== '-' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}">${ocBoys}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${ocGirls !== '-' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}">${ocGirls}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${scBoys !== '-' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-500'}">${scBoys}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${scGirls !== '-' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-500'}">${scGirls}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${stBoys !== '-' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-500'}">${stBoys}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${stGirls !== '-' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-500'}">${stGirls}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${bcaBoys !== '-' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-500'}">${bcaBoys}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${bcaGirls !== '-' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-500'}">${bcaGirls}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${bcbBoys !== '-' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-500'}">${bcbBoys}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${bcbGirls !== '-' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-500'}">${bcbGirls}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${bccBoys !== '-' ? 'bg-pink-100 text-pink-800' : 'bg-gray-100 text-gray-500'}">${bccBoys}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${bccGirls !== '-' ? 'bg-pink-100 text-pink-800' : 'bg-gray-100 text-gray-500'}">${bccGirls}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${bcdBoys !== '-' ? 'bg-teal-100 text-teal-800' : 'bg-gray-100 text-gray-500'}">${bcdBoys}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${bcdGirls !== '-' ? 'bg-teal-100 text-teal-800' : 'bg-gray-100 text-gray-500'}">${bcdGirls}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${bceBoys !== '-' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-500'}">${bceBoys}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${bceGirls !== '-' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-500'}">${bceGirls}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${ocEwsBoys !== '-' ? 'bg-cyan-100 text-cyan-800' : 'bg-gray-100 text-gray-500'}">${ocEwsBoys}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${ocEwsGirls !== '-' ? 'bg-cyan-100 text-cyan-800' : 'bg-gray-100 text-gray-500'}">${ocEwsGirls}</span>
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <span class="text-sm font-semibold text-gray-900">${fee}</span>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                    
+                    return `
+                        <tr class="hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer underline institution-name" data-institution="${encodeURIComponent(inst.name)}">
+                                        ${inst.name}
+                                    </div>
+                                    <svg class="w-4 h-4 text-gray-400 dropdown-arrow cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">${inst.branches.length} branch${inst.branches.length !== 1 ? 'es' : ''} available • Click to view all branches</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                ${branchesHtml}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${inst.district}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${inst.type}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                ${rankDisplay}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${feeDisplay}</td>
+                        </tr>
+                        <tr class="dropdown-content" id="dropdown-${index}">
+                            <td colspan="6" class="px-0 py-0">
+                                <div class="bg-blue-50 border-t border-b border-blue-200">
+                                    <div class="px-6 py-3">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <h4 class="font-semibold text-gray-900">All Branches at ${inst.name}</h4>
+                                            <div class="text-sm text-gray-600">
+                                                <span class="font-medium">${inst.district}</span> • <span class="font-medium">${inst.type}</span>
+                                            </div>
+                                        </div>
+                                        <div class="bg-white rounded-md border overflow-x-auto">
+                                            <div class="px-4 py-2 bg-gray-50 border-b text-xs font-medium text-gray-500 uppercase min-w-max">
+                                                <div class="grid grid-cols-20 gap-2 items-center">
+                                                    <div class="col-span-2">Branch Code</div>
+                                                    <div class="col-span-3">Branch Name</div>
+                                                    <div class="col-span-1 text-center">OC_B</div>
+                                                    <div class="col-span-1 text-center">OC_G</div>
+                                                    <div class="col-span-1 text-center">SC_B</div>
+                                                    <div class="col-span-1 text-center">SC_G</div>
+                                                    <div class="col-span-1 text-center">ST_B</div>
+                                                    <div class="col-span-1 text-center">ST_G</div>
+                                                    <div class="col-span-1 text-center">BCA_B</div>
+                                                    <div class="col-span-1 text-center">BCA_G</div>
+                                                    <div class="col-span-1 text-center">BCB_B</div>
+                                                    <div class="col-span-1 text-center">BCB_G</div>
+                                                    <div class="col-span-1 text-center">BCC_B</div>
+                                                    <div class="col-span-1 text-center">BCC_G</div>
+                                                    <div class="col-span-1 text-center">BCD_B</div>
+                                                    <div class="col-span-1 text-center">BCD_G</div>
+                                                    <div class="col-span-1 text-center">BCE_B</div>
+                                                    <div class="col-span-1 text-center">BCE_G</div>
+                                                    <div class="col-span-1 text-center">EWS_B</div>
+                                                    <div class="col-span-1 text-center">EWS_G</div>
+                                                    <div class="col-span-1 text-right">Fee</div>
+                                                </div>
+                                            </div>
+                                            <div class="divide-y divide-gray-100 min-w-max">
+                                                ${branchDetailsHtml}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                
+                // Add click event listeners using event delegation
+                addInstitutionClickListeners();
+            }
+        }
+
+        function addInstitutionClickListeners() {
+            // Remove existing listeners to avoid duplicates
+            const tbody = document.getElementById('resultsTableBody');
+            
+            // Use event delegation for better performance and reliability
+            tbody.removeEventListener('click', handleInstitutionClick);
+            tbody.addEventListener('click', handleInstitutionClick);
+        }
+
+        function handleInstitutionClick(event) {
+            const target = event.target.closest('.institution-name') || event.target.closest('.dropdown-arrow');
+            if (target) {
+                const row = target.closest('tr');
+                const nextRow = row.nextElementSibling;
+                const arrow = row.querySelector('.dropdown-arrow');
+                
+                if (nextRow && nextRow.classList.contains('dropdown-content')) {
+                    // Toggle dropdown
+                    if (nextRow.classList.contains('expanded')) {
+                        nextRow.classList.remove('expanded');
+                        arrow.classList.remove('expanded');
+                    } else {
+                        // Close all other dropdowns first
+                        document.querySelectorAll('.dropdown-content.expanded').forEach(dropdown => {
+                            dropdown.classList.remove('expanded');
+                        });
+                        document.querySelectorAll('.dropdown-arrow.expanded').forEach(arr => {
+                            arr.classList.remove('expanded');
+                        });
+                        
+                        // Open this dropdown
+                        nextRow.classList.add('expanded');
+                        arrow.classList.add('expanded');
+                    }
+                }
+            }
+        }
+
+        // Auto-apply filters on input change
+        document.getElementById('searchFilter').addEventListener('input', applyFilters);
+        document.getElementById('branchFilter').addEventListener('change', applyFilters);
+        document.getElementById('branchCodeFilter').addEventListener('change', applyFilters);
+        document.getElementById('typeFilter').addEventListener('change', applyFilters);
+        document.getElementById('rankFilter').addEventListener('input', applyFilters);
+        document.getElementById('minRankFilter').addEventListener('input', applyFilters);
+        document.getElementById('maxRankFilter').addEventListener('input', applyFilters);
+    </script>
+</body>
+
+</html>
