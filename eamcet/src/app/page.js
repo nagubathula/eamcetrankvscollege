@@ -73,10 +73,9 @@ export default function EngineeringFilter() {
     }
   };
 
-  const applyFilters = () => {
-    if (institutions.length === 0) return;
-
-    const filtered = institutions.filter(inst => {
+  // Helper function to apply current filters to any institution list
+  const applyCurrentFilters = (institutionsList) => {
+    return institutionsList.filter(inst => {
       const ocBoysRank = parseInt(inst.OC_BOYS, 10);
       const institutionName = (inst.Name || inst.name || inst.NAME || '').toLowerCase();
 
@@ -111,6 +110,12 @@ export default function EngineeringFilter() {
 
       return true;
     });
+  };
+
+  const applyFilters = () => {
+    if (institutions.length === 0) return;
+
+    const filtered = applyCurrentFilters(institutions);
 
     // Group institutions by name
     const groupedInstitutions = {};
@@ -205,8 +210,11 @@ export default function EngineeringFilter() {
     return Array.from(new Set(values)).sort();
   };
 
+  // Updated function that respects current filters
   const getInstitutionBranches = (institutionName) => {
-    return institutions.filter(branch => {
+    const filteredInstitutions = applyCurrentFilters(institutions);
+    
+    return filteredInstitutions.filter(branch => {
       const name = branch.Name || branch.name || branch.NAME || '';
       return name === institutionName;
     }).sort((a, b) => {
@@ -224,7 +232,7 @@ export default function EngineeringFilter() {
 
     return (
       <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div className="relative top-20 mx-auto p-5 border border-black/50 w-11/12 max-w-6xl shadow-lg rounded-md bg-white">
+        <div className="relative top-20 mx-auto p-5 border border-black/50 w-[98%] shadow-lg rounded-md bg-white">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-gray-900">{selectedInstitution}</h3>
             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -239,10 +247,26 @@ export default function EngineeringFilter() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><strong>District:</strong> {institutionData?.district}</div>
                 <div><strong>Type:</strong> {institutionData?.type}</div>
-                <div><strong>Total Branches:</strong> {allBranches.length}</div>
-                <div><strong>Best Rank:</strong> {Math.min(...allBranches.map(b => parseInt(b.OC_BOYS || b.oc_boys || b.Oc_Boys || Infinity, 10)))}</div>
+                <div><strong>Filtered Branches:</strong> {allBranches.length}</div>
+                <div><strong>Best Rank (Filtered):</strong> {allBranches.length > 0 ? Math.min(...allBranches.map(b => parseInt(b.OC_BOYS || b.oc_boys || b.Oc_Boys || Infinity, 10))) : 'N/A'}</div>
               </div>
             </div>
+
+            {/* Show active filters info */}
+            {/* {(filters.branch || filters.branchCode || filters.type || filters.search || filters.rank || filters.minRank || filters.maxRank) && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-center mb-2">
+                  <svg className="w-4 h-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                  </svg>
+                  <span className="text-sm font-medium text-yellow-800">Active Filters Applied</span>
+                </div>
+                <div className="text-xs text-yellow-700">
+                  Showing only branches that match your current filter criteria. 
+                  {allBranches.length === 0 && " No branches match the current filters."}
+                </div>
+              </div>
+            )} */}
 
             <div className="mb-3 text-xs text-gray-600">
               <span className="font-medium">Category Legend:</span> 
@@ -256,100 +280,115 @@ export default function EngineeringFilter() {
 
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-gray-50 px-4 py-3 border-b">
-                <h4 className="font-semibold text-gray-900">All Available Branches & Closing Ranks</h4>
+                <h4 className="font-semibold text-gray-900">
+                  {allBranches.length > 0 ? 'Filtered Branches & Closing Ranks' : 'No Branches Match Current Filters'}
+                </h4>
               </div>
-              <div className="text-xs text-gray-500 bg-blue-50 px-4 py-2 border-b flex items-center justify-between">
-                <div className="flex items-center">
-                  <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  Scroll horizontally to view all categories • Lower rank numbers are better
-                </div>
-                <div className="text-xs text-blue-600 font-medium">
-                  {allBranches.length} branch{allBranches.length !== 1 ? 'es' : ''} available
-                </div>
-              </div>
-              <div className="overflow-x-auto max-h-96">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50 sticky top-0">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10 border-r border-gray-300">Branch</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">OC_B</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">OC_G</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">SC_B</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">SC_G</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">ST_B</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">ST_G</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCA_B</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCA_G</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCB_B</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCB_G</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCC_B</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCC_G</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCD_B</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCD_G</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCE_B</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCE_G</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">EWS_B</th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">EWS_G</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">Fee</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {allBranches.map((branch, branchIndex) => {
-                      const branchCode = branch.branch_code || branch.BRANCH_CODE || branch.Branch_Code || '';
-                      const branchName = branch.Branch || branch.branch || branch.BRANCH || '';
-                      const fee = branch.COLLFEE || branch.Fee || branch.fee || branch.CollegeFee || '';
-                      
-                      // All category ranks
-                      const categories = [
-                        { key: 'OC_BOYS', color: 'green' },
-                        { key: 'OC_GIRLS', color: 'green' },
-                        { key: 'SC_BOYS', color: 'yellow' },
-                        { key: 'SC_GIRLS', color: 'yellow' },
-                        { key: 'ST_BOYS', color: 'red' },
-                        { key: 'ST_GIRLS', color: 'red' },
-                        { key: 'BCA_BOYS', color: 'purple' },
-                        { key: 'BCA_GIRLS', color: 'purple' },
-                        { key: 'BCB_BOYS', color: 'indigo' },
-                        { key: 'BCB_GIRLS', color: 'indigo' },
-                        { key: 'BCC_BOYS', color: 'pink' },
-                        { key: 'BCC_GIRLS', color: 'pink' },
-                        { key: 'BCD_BOYS', color: 'teal' },
-                        { key: 'BCD_GIRLS', color: 'teal' },
-                        { key: 'BCE_BOYS', color: 'orange' },
-                        { key: 'BCE_GIRLS', color: 'orange' },
-                        { key: 'OC_EWS_BOYS', color: 'cyan' },
-                        { key: 'OC_EWS_GIRLS', color: 'cyan' }
-                      ];
-
-                      return (
-                        <tr key={branchIndex} className={`${branchIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors table-sticky-hover`}>
-                          <td className={`px-4 py-3 sticky left-0 ${branchIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'} z-10 border-r border-gray-300 sticky-col`}>
-                            <div className="flex flex-col space-y-1">
-                              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800">{branchCode}</span>
-                              <span className="text-xs text-gray-700 font-medium">{branchName}</span>
-                            </div>
-                          </td>
-                          {categories.map(({ key, color }) => {
-                            const value = branch[key] || branch[key.toLowerCase()] || branch[key.replace(/_/g, '').toLowerCase()] || '-';
-                            return (
-                              <td key={key} className="px-3 py-3 text-center">
-                                <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${value !== '-' ? `bg-${color}-100 text-${color}-800` : 'bg-gray-100 text-gray-500'}`}>
-                                  {value}
-                                </span>
-                              </td>
-                            );
-                          })}
-                          <td className="px-4 py-3 text-right">
-                            <span className="text-sm font-semibold text-gray-900">{fee}</span>
-                          </td>
+              
+              {allBranches.length > 0 ? (
+                <>
+                  <div className="text-xs text-gray-500 bg-blue-50 px-4 py-2 border-b flex items-center justify-between">
+                    <div className="flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      Scroll horizontally to view all categories • Lower rank numbers are better
+                    </div>
+                    <div className="text-xs text-blue-600 font-medium">
+                      {allBranches.length} branch{allBranches.length !== 1 ? 'es' : ''} shown
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10 border-r border-gray-300">Branch</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">OC_B</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">OC_G</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">SC_B</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">SC_G</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">ST_B</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">ST_G</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCA_B</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCA_G</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCB_B</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCB_G</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCC_B</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCC_G</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCD_B</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCD_G</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCE_B</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">BCE_G</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">EWS_B</th>
+                          <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-16">EWS_G</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-20">Fee</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {allBranches.map((branch, branchIndex) => {
+                          const branchCode = branch.branch_code || branch.BRANCH_CODE || branch.Branch_Code || '';
+                          const branchName = branch.Branch || branch.branch || branch.BRANCH || '';
+                          const fee = branch.COLLFEE || branch.Fee || branch.fee || branch.CollegeFee || '';
+                          
+                          // All category ranks
+                          const categories = [
+                            { key: 'OC_BOYS', color: 'green' },
+                            { key: 'OC_GIRLS', color: 'green' },
+                            { key: 'SC_BOYS', color: 'yellow' },
+                            { key: 'SC_GIRLS', color: 'yellow' },
+                            { key: 'ST_BOYS', color: 'red' },
+                            { key: 'ST_GIRLS', color: 'red' },
+                            { key: 'BCA_BOYS', color: 'purple' },
+                            { key: 'BCA_GIRLS', color: 'purple' },
+                            { key: 'BCB_BOYS', color: 'indigo' },
+                            { key: 'BCB_GIRLS', color: 'indigo' },
+                            { key: 'BCC_BOYS', color: 'pink' },
+                            { key: 'BCC_GIRLS', color: 'pink' },
+                            { key: 'BCD_BOYS', color: 'teal' },
+                            { key: 'BCD_GIRLS', color: 'teal' },
+                            { key: 'BCE_BOYS', color: 'orange' },
+                            { key: 'BCE_GIRLS', color: 'orange' },
+                            { key: 'OC_EWS_BOYS', color: 'cyan' },
+                            { key: 'OC_EWS_GIRLS', color: 'cyan' }
+                          ];
+
+                          return (
+                            <tr key={branchIndex} className={`${branchIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors table-sticky-hover`}>
+                              <td className={`px-4 py-3 sticky left-0 ${branchIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'} z-10 border-r border-gray-300 sticky-col`}>
+                                <div className="flex flex-col space-y-1">
+                                  <span className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800">{branchCode}</span>
+                                  <span className="text-xs text-gray-700 font-medium">{branchName}</span>
+                                </div>
+                              </td>
+                              {categories.map(({ key, color }) => {
+                                const value = branch[key] || branch[key.toLowerCase()] || branch[key.replace(/_/g, '').toLowerCase()] || '-';
+                                return (
+                                  <td key={key} className="px-3 py-3 text-center">
+                                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${value !== '-' ? `bg-${color}-100 text-${color}-800` : 'bg-gray-100 text-gray-500'}`}>
+                                      {value}
+                                    </span>
+                                  </td>
+                                );
+                              })}
+                              <td className="px-4 py-3 text-right">
+                                <span className="text-sm font-semibold text-gray-900">{fee}</span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No branches match current filters</h3>
+                  <p className="mt-1 text-sm text-gray-500">Try adjusting your filter criteria to see branches for this institution.</p>
+                </div>
+              )}
             </div>
 
             <div className="mt-6 flex justify-end">
@@ -417,9 +456,10 @@ export default function EngineeringFilter() {
                 <h3 className="text-sm font-medium text-blue-800">How to use this filter</h3>
                 <div className="mt-2 text-sm text-blue-700">
                   <ul className="list-disc list-inside space-y-1">
-                    <li><strong>Your Rank:</strong> Enter your rank to see institutions where you're eligible for admission (institutions with closing ranks at or above your rank)</li>
+                    <li><strong>Your Rank:</strong> Enter your rank to see institutions where you&apos;re eligible for admission (institutions with closing ranks at or above your rank)</li>
                     <li><strong>Rank Range:</strong> Toggle range mode to see all institutions with closing ranks within a specific range</li>
                     <li><strong>Institution Details:</strong> Click on any institution name to view all available branches with closing ranks for all categories (OC, SC, ST, BC, EWS - Boys & Girls)</li>
+                    <li><strong>Modal Filtering:</strong> The modal respects your current filters - only branches matching your criteria will be shown</li>
                   </ul>
                 </div>
               </div>
@@ -619,7 +659,7 @@ export default function EngineeringFilter() {
                             >
                               {inst.name}
                             </div>
-                            <div className="text-xs text-gray-500 mt-1">{inst.branches.length} branch{inst.branches.length !== 1 ? 'es' : ''} available • Click to view all branches</div>
+                            <div className="text-xs text-gray-500 mt-1">{inst.branches.length} branch{inst.branches.length !== 1 ? 'es' : ''} available • Click to view filtered branches</div>
                           </td>
                           <td className="px-6 py-4">
                             {branchesHtml}
