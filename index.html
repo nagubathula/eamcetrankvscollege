@@ -24,6 +24,9 @@
   <label>Branch:
     <select id="branchFilter"></select>
   </label>
+  <label>Branch Code:
+    <select id="branchCodeFilter"></select>
+  </label>
   <label>District:
     <select id="districtFilter"></select>
   </label>
@@ -67,8 +70,21 @@
 
     function populateFilters() {
       fillDropdown('branchFilter', getUnique('Branch'));
+      fillDropdown('branchCodeFilter', getBranchCodes());
       fillDropdown('districtFilter', getUnique('District'));
       fillDropdown('typeFilter', getUnique('Type'));
+    }
+
+    function getBranchCodes() {
+      const branchCodes = [
+        'AER', 'AGR', 'AIM', 'AID', 'AI', 'AUT', 'BIO', 'BDT', 'CAD', 'CAI',
+        'CBC', 'CCE', 'CCG', 'CCI', 'CHE', 'CIC', 'CIV', 'CSE', 'CSG', 'CSB',
+        'CSC', 'CSD', 'CSM', 'CSO', 'CSW', 'CST', 'CSS', 'DS', 'EBM', 'ECES',
+        'ECM', 'ECE', 'ECT', 'EEE', 'EIE', 'EVT', 'FDE', 'FDT', 'GIN', 'INF',
+        'IST', 'IOT', 'MAU', 'MAD', 'MEC', 'MIN', 'MRB', 'NAM', 'PET', 'PHM',
+        'PHD', 'RBT', 'SWE'
+      ];
+      return branchCodes.sort();
     }
 
     function getUnique(field) {
@@ -84,12 +100,14 @@
 
     function applyFilters() {
       const branch = document.getElementById('branchFilter').value;
+      const branchCode = document.getElementById('branchCodeFilter').value;
       const district = document.getElementById('districtFilter').value;
       const type = document.getElementById('typeFilter').value;
       const userRank = parseInt(document.getElementById('rankFilter').value, 10);
 
       const filtered = institutions.filter(inst => {
         return (!branch || inst.Branch === branch) &&
+               (!branchCode || inst.branch_code === branchCode) &&
                (!district || inst.District === district) &&
                (!type || inst.Type === type) &&
                (isNaN(userRank) || parseInt(inst.OC_BOYS, 10) >= userRank);
