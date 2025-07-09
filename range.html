@@ -1,167 +1,204 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <title>Engineering Institutions Counselling Filter (XLSX)</title>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 30px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; }
-    th { background: #f2f2f2; }
-    label { margin-right: 20px; }
-    select, input[type="number"] { margin-left: 5px; }
-    .info { background: #e7f3ff; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
-  </style>
-</head>
-<body>
-  <h2>Engineering Institutions Counselling Filter (XLSX)</h2>
-  
-  <div class="info">
-    <strong>Note:</strong> 
-    <ul>
-      <li><strong>Your Rank:</strong> Enter your rank to see institutions where you're eligible for admission (institutions with closing ranks at or above your rank).</li>
-      <li><strong>Rank Range:</strong> Enter min and max ranks to see all institutions with closing ranks within that range.</li>
-      <li>If you enter your rank, the rank range will be ignored.</li>
-    </ul>
-  </div>
-
-  <label>Branch:
-    <select id="branchFilter"></select>
-  </label>
-  <label>Branch Code:
-    <select id="branchCodeFilter"></select>
-  </label>
-  <label>District:
-    <select id="districtFilter"></select>
-  </label>
-  <label>Institution Type:
-    <select id="typeFilter"></select>
-  </label>
-  <label>Your OC_BOYS Rank:
-    <input type="number" id="rankFilter" placeholder="Enter your rank">
-  </label>
-  <br><br>
-  <strong>OR use Rank Range:</strong><br>
-  <label>Min Rank:
-    <input type="number" id="minRankFilter" placeholder="Enter min rank">
-  </label>
-  <label>Max Rank:
-    <input type="number" id="maxRankFilter" placeholder="Enter max rank">
-  </label>
-  <br><br>
-  <button onclick="applyFilters()">Apply Filters</button>
-
-  <table id="resultsTable">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Branch</th>
-        <th>District</th>
-        <th>Type</th>
-        <th>OC_BOYS Closing Rank</th>
-        <th>Fee</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <script>
-    let institutions = [];
-
-    // Fetch the XLSX file automatically
-    fetch('interdata.xlsx')
-      .then(response => response.arrayBuffer())
-      .then(data => {
-        const workbook = XLSX.read(data, {type: 'array'});
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        institutions = XLSX.utils.sheet_to_json(sheet);
-
-        populateFilters();
-        applyFilters();
-      });
-
-    function populateFilters() {
-      fillDropdown('branchFilter', getUnique('Branch'));
-      fillDropdown('branchCodeFilter', getBranchCodes());
-      fillDropdown('districtFilter', getUnique('District'));
-      fillDropdown('typeFilter', getUnique('Type'));
-    }
-
-    function getBranchCodes() {
-      const branchCodes = [
-        'AER', 'AGR', 'AIM', 'AID', 'AI', 'AUT', 'BIO', 'BDT', 'CAD', 'CAI',
-        'CBC', 'CCE', 'CCG', 'CCI', 'CHE', 'CIC', 'CIV', 'CSE', 'CSG', 'CSB',
-        'CSC', 'CSD', 'CSM', 'CSO', 'CSW', 'CST', 'CSS', 'DS', 'EBM', 'ECES',
-        'ECM', 'ECE', 'ECT', 'EEE', 'EIE', 'EVT', 'FDE', 'FDT', 'GIN', 'INF',
-        'IST', 'IOT', 'MAU', 'MAD', 'MEC', 'MIN', 'MRB', 'NAM', 'PET', 'PHM',
-        'PHD', 'RBT', 'SWE'
-      ];
-      return branchCodes.sort();
-    }
-
-    function getUnique(field) {
-      const values = institutions.map(inst => inst[field]).filter(x => x !== undefined && x !== "");
-      return Array.from(new Set(values)).sort();
-    }
-
-    function fillDropdown(id, items) {
-      const select = document.getElementById(id);
-      select.innerHTML = '<option value="">All</option>' +
-        items.map(item => `<option value="${item}">${item}</option>`).join('');
-    }
-
-    function applyFilters() {
-      const branch = document.getElementById('branchFilter').value;
-      const branchCode = document.getElementById('branchCodeFilter').value;
-      const district = document.getElementById('districtFilter').value;
-      const type = document.getElementById('typeFilter').value;
-      const userRank = parseInt(document.getElementById('rankFilter').value, 10);
-      const minRank = parseInt(document.getElementById('minRankFilter').value, 10);
-      const maxRank = parseInt(document.getElementById('maxRankFilter').value, 10);
-
-      const filtered = institutions.filter(inst => {
-        const instRank = parseInt(inst.OC_BOYS, 10);
-        
-        // Apply basic filters first
-        if (branch && inst.Branch !== branch) return false;
-        if (branchCode && inst.branch_code !== branchCode) return false;
-        if (district && inst.District !== district) return false;
-        if (type && inst.Type !== type) return false;
-        
-        // Apply rank filters
-        if (!isNaN(userRank)) {
-          // If user rank is provided, show institutions where user can get admission
-          return instRank >= userRank;
-        } else if (!isNaN(minRank) || !isNaN(maxRank)) {
-          // If rank range is provided, show institutions within the range
-          if (!isNaN(minRank) && !isNaN(maxRank)) {
-            return instRank >= minRank && instRank <= maxRank;
-          } else if (!isNaN(minRank)) {
-            return instRank >= minRank;
-          } else if (!isNaN(maxRank)) {
-            return instRank <= maxRank;
-          }
+    <meta charset="UTF-8">
+    <title>Engineering Institutions Counselling Filter (XLSX)</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
         }
-        
-        return true; // No rank filter applied
-      });
 
-      // Sort by closing rank (ascending) to show best options first
-      filtered.sort((a, b) => {
-        const rankA = parseInt(a.OC_BOYS, 10) || Infinity;
-        const rankB = parseInt(b.OC_BOYS, 10) || Infinity;
-        return rankA - rankB;
-      });
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
 
-      const tbody = document.getElementById('resultsTable').querySelector('tbody');
-      tbody.innerHTML = '';
-      if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No results found.</td></tr>';
-      } else {
-        filtered.forEach(inst => {
-          const row = `<tr>
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+
+        th {
+            background: #f2f2f2;
+        }
+
+        label {
+            margin-right: 20px;
+        }
+
+        select,
+        input[type="number"] {
+            margin-left: 5px;
+        }
+
+        .info {
+            background: #e7f3ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Engineering Institutions Counselling Filter (XLSX)</h2>
+
+    <div class="info">
+        <strong>Note:</strong>
+        <ul>
+            <li><strong>Your Rank:</strong> Enter your rank to see institutions where you're eligible for admission
+                (institutions with closing ranks at or above your rank).</li>
+            <li><strong>Rank Range:</strong> Enter min and max ranks to see all institutions with closing ranks within
+                that range.</li>
+            <li>If you enter your rank, the rank range will be ignored.</li>
+        </ul>
+    </div>
+
+    <label>Branch:
+        <select id="branchFilter"></select>
+    </label>
+    <label>Branch Code:
+        <select id="branchCodeFilter"></select>
+    </label>
+    <label>District:
+        <select id="districtFilter"></select>
+    </label>
+    <label>Institution Type:
+        <select id="typeFilter"></select>
+    </label>
+    <label>Your OC_BOYS Rank:
+        <input type="number" id="rankFilter" placeholder="Enter your rank">
+    </label>
+    <br><br>
+    <strong>OR use Rank Range:</strong><br>
+    <label>Min Rank:
+        <input type="number" id="minRankFilter" placeholder="Enter min rank">
+    </label>
+    <label>Max Rank:
+        <input type="number" id="maxRankFilter" placeholder="Enter max rank">
+    </label>
+    <br><br>
+    <button onclick="applyFilters()">Apply Filters</button>
+
+    <table id="resultsTable">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Branch</th>
+                <th>District</th>
+                <th>Type</th>
+                <th>OC_BOYS Closing Rank</th>
+                <th>Fee</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        let institutions = [];
+
+        // Fetch the XLSX file automatically
+        fetch('interdata.xlsx')
+            .then(response => response.arrayBuffer())
+            .then(data => {
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                institutions = XLSX.utils.sheet_to_json(sheet);
+
+                populateFilters();
+                applyFilters();
+            });
+
+        function populateFilters() {
+            fillDropdown('branchFilter', getUnique('Branch'));
+            fillDropdown('branchCodeFilter', getBranchCodes());
+            fillDropdown('districtFilter', getUnique('District'));
+            fillDropdown('typeFilter', getUnique('Type'));
+        }
+
+        function getBranchCodes() {
+            const branchCodes = [
+                'AER', 'AGR', 'AIM', 'AID', 'AI', 'AUT', 'BIO', 'BDT', 'CAD', 'CAI',
+                'CBC', 'CCE', 'CCG', 'CCI', 'CHE', 'CIC', 'CIV', 'CSE', 'CSG', 'CSB',
+                'CSC', 'CSD', 'CSM', 'CSO', 'CSW', 'CST', 'CSS', 'DS', 'EBM', 'ECES',
+                'ECM', 'ECE', 'ECT', 'EEE', 'EIE', 'EVT', 'FDE', 'FDT', 'GIN', 'INF',
+                'IST', 'IOT', 'MAU', 'MAD', 'MEC', 'MIN', 'MRB', 'NAM', 'PET', 'PHM',
+                'PHD', 'RBT', 'SWE'
+            ];
+            return branchCodes.sort();
+        }
+
+        function getUnique(field) {
+            const values = institutions.map(inst => inst[field]).filter(x => x !== undefined && x !== "");
+            return Array.from(new Set(values)).sort();
+        }
+
+        function fillDropdown(id, items) {
+            const select = document.getElementById(id);
+            select.innerHTML = '<option value="">All</option>' +
+                items.map(item => `<option value="${item}">${item}</option>`).join('');
+        }
+
+        function applyFilters() {
+            const branch = document.getElementById('branchFilter').value;
+            const branchCode = document.getElementById('branchCodeFilter').value;
+            const district = document.getElementById('districtFilter').value;
+            const type = document.getElementById('typeFilter').value;
+            const userRank = parseInt(document.getElementById('rankFilter').value, 10);
+            const minRank = parseInt(document.getElementById('minRankFilter').value, 10);
+            const maxRank = parseInt(document.getElementById('maxRankFilter').value, 10);
+
+            const filtered = institutions.filter(inst => {
+                const ocBoysRank = parseInt(inst.OC_BOYS, 10);
+
+                // Skip institutions without valid OC_BOYS rank data
+                if (isNaN(ocBoysRank)) return false;
+
+                // Apply basic filters first
+                if (branch && inst.Branch !== branch) return false;
+                if (branchCode && inst.branch_code !== branchCode) return false;
+                if (district && inst.District !== district) return false;
+                if (type && inst.Type !== type) return false;
+
+                // Apply OC_BOYS rank filters
+                if (!isNaN(userRank)) {
+                    // If user rank is provided, show institutions where user can get admission
+                    // (institutions with OC_BOYS closing ranks at or above user's rank)
+                    return ocBoysRank >= userRank;
+                } else if (!isNaN(minRank) || !isNaN(maxRank)) {
+                    // If rank range is provided, show institutions with OC_BOYS ranks within the range
+                    if (!isNaN(minRank) && !isNaN(maxRank)) {
+                        return ocBoysRank >= minRank && ocBoysRank <= maxRank;
+                    } else if (!isNaN(minRank)) {
+                        return ocBoysRank >= minRank;
+                    } else if (!isNaN(maxRank)) {
+                        return ocBoysRank <= maxRank;
+                    }
+                }
+
+                return true; // No rank filter applied
+            });
+
+            // Sort by OC_BOYS closing rank (ascending) to show best options first
+            filtered.sort((a, b) => {
+                const rankA = parseInt(a.OC_BOYS, 10) || Infinity;
+                const rankB = parseInt(b.OC_BOYS, 10) || Infinity;
+                return rankA - rankB;
+            });
+
+            const tbody = document.getElementById('resultsTable').querySelector('tbody');
+            tbody.innerHTML = '';
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No results found.</td></tr>';
+            } else {
+                filtered.forEach(inst => {
+                    const row = `<tr>
             <td>${inst.Name || ''}</td>
             <td>${inst.branch_code || ''}</td>
             <td>${inst.DIST || ''}</td>
@@ -169,10 +206,11 @@
             <td>${inst.OC_BOYS || ''}</td>
             <td>${inst.COLLFEE || ''}</td>
           </tr>`;
-          tbody.innerHTML += row;
-        });
-      }
-    }
-  </script>
+                    tbody.innerHTML += row;
+                });
+            }
+        }
+    </script>
 </body>
+
 </html>
