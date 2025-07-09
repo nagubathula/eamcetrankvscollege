@@ -621,10 +621,10 @@ export default function EngineeringFilter() {
                       const branchesHtml = inst.branches.length > 3 
                         ? (
                           <div className="flex flex-wrap gap-1">
-                            {inst.branches.slice(0, 3).map(branch => (
+                            {inst.branches.map(branch => (
                               <span key={branch} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">{branch}</span>
                             ))}
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">+{inst.branches.length - 3} more</span>
+                            {/* <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">+{inst.branches.length - 3} more</span> */}
                           </div>
                         )
                         : (
