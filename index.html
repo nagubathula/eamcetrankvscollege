@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Engineering Institutions Filter (XLSX)</title>
+  <title>Engineering Institutions Counselling Filter (XLSX)</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 30px; }
@@ -11,10 +11,15 @@
     th { background: #f2f2f2; }
     label { margin-right: 20px; }
     select, input[type="number"] { margin-left: 5px; }
+    .info { background: #e7f3ff; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
   </style>
 </head>
 <body>
-  <h2>Filter Engineering Institutions by OC_BOYS Rank (XLSX)</h2>
+  <h2>Engineering Institutions Counselling Filter (XLSX)</h2>
+  
+  <div class="info">
+    <strong>Note:</strong> Enter your rank to see institutions where you're eligible for admission (institutions with closing ranks at or above your rank).
+  </div>
 
   <label>Branch:
     <select id="branchFilter"></select>
@@ -25,8 +30,8 @@
   <label>Institution Type:
     <select id="typeFilter"></select>
   </label>
-  <label>OC_BOYS Rank (Max):
-    <input type="number" id="rankFilter" placeholder="Enter max rank">
+  <label>Your OC_BOYS Rank:
+    <input type="number" id="rankFilter" placeholder="Enter your rank">
   </label>
   <button onclick="applyFilters()">Apply Filters</button>
 
@@ -37,7 +42,7 @@
         <th>Branch</th>
         <th>District</th>
         <th>Type</th>
-        <th>OC_BOYS Rank</th>
+        <th>OC_BOYS Closing Rank</th>
         <th>Fee</th>
       </tr>
     </thead>
@@ -81,13 +86,20 @@
       const branch = document.getElementById('branchFilter').value;
       const district = document.getElementById('districtFilter').value;
       const type = document.getElementById('typeFilter').value;
-      const maxRank = parseInt(document.getElementById('rankFilter').value, 10);
+      const userRank = parseInt(document.getElementById('rankFilter').value, 10);
 
       const filtered = institutions.filter(inst => {
         return (!branch || inst.Branch === branch) &&
                (!district || inst.District === district) &&
                (!type || inst.Type === type) &&
-               (isNaN(maxRank) || parseInt(inst.OC_BOYS, 10) <= maxRank);
+               (isNaN(userRank) || parseInt(inst.OC_BOYS, 10) >= userRank);
+      });
+
+      // Sort by closing rank (ascending) to show best options first
+      filtered.sort((a, b) => {
+        const rankA = parseInt(a.OC_BOYS, 10) || Infinity;
+        const rankB = parseInt(b.OC_BOYS, 10) || Infinity;
+        return rankA - rankB;
       });
 
       const tbody = document.getElementById('resultsTable').querySelector('tbody');
