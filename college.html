@@ -11,14 +11,10 @@
     th { background: #f2f2f2; }
     label { margin-right: 20px; }
     select, input[type="number"] { margin-left: 5px; }
-    #fileInput { margin-bottom: 20px; }
   </style>
 </head>
 <body>
   <h2>Filter Engineering Institutions by OC_BOYS Rank (XLSX)</h2>
-
-  <input type="file" id="fileInput" accept=".xlsx" />
-  <br><br>
 
   <label>Branch:
     <select id="branchFilter"></select>
@@ -51,12 +47,10 @@
   <script>
     let institutions = [];
 
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
+    // Fetch the XLSX file automatically
+    fetch('interdata.xlsx')
+      .then(response => response.arrayBuffer())
+      .then(data => {
         const workbook = XLSX.read(data, {type: 'array'});
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
@@ -64,9 +58,7 @@
 
         populateFilters();
         applyFilters();
-      };
-      reader.readAsArrayBuffer(file);
-    });
+      });
 
     function populateFilters() {
       fillDropdown('branchFilter', getUnique('Branch'));
@@ -106,11 +98,11 @@
         filtered.forEach(inst => {
           const row = `<tr>
             <td>${inst.Name || ''}</td>
-            <td>${inst.branch_code || ''}</td>
-            <td>${inst.DIST || ''}</td>
-            <td>${inst.TYPE || ''}</td>
+            <td>${inst.Branch || ''}</td>
+            <td>${inst.District || ''}</td>
+            <td>${inst.Type || ''}</td>
             <td>${inst.OC_BOYS || ''}</td>
-            <td>${inst.COLLFEE || ''}</td>
+            <td>${inst.Fee || ''}</td>
           </tr>`;
           tbody.innerHTML += row;
         });
