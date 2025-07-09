@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Engineering Institutions Filter (XLSX)</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    th { background: #f2f2f2; }
+    label { margin-right: 20px; }
+    select, input[type="number"] { margin-left: 5px; }
+    #fileInput { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <h2>Filter Engineering Institutions by OC_BOYS Rank (XLSX)</h2>
+
+  <input type="file" id="fileInput" accept=".xlsx" />
+  <br><br>
+
+  <label>Branch:
+    <select id="branchFilter"></select>
+  </label>
+  <label>District:
+    <select id="districtFilter"></select>
+  </label>
+  <label>Institution Type:
+    <select id="typeFilter"></select>
+  </label>
+  <label>OC_BOYS Rank (Max):
+    <input type="number" id="rankFilter" placeholder="Enter max rank">
+  </label>
+  <button onclick="applyFilters()">Apply Filters</button>
+
+  <table id="resultsTable">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Branch</th>
+        <th>District</th>
+        <th>Type</th>
+        <th>OC_BOYS Rank</th>
+        <th>Fee</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    let institutions = [];
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        institutions = XLSX.utils.sheet_to_json(sheet);
+
+        populateFilters();
+        applyFilters();
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    function populateFilters() {
+      fillDropdown('branchFilter', getUnique('Branch'));
+      fillDropdown('districtFilter', getUnique('District'));
+      fillDropdown('typeFilter', getUnique('Type'));
+    }
+
+    function getUnique(field) {
+      const values = institutions.map(inst => inst[field]).filter(x => x !== undefined && x !== "");
+      return Array.from(new Set(values)).sort();
+    }
+
+    function fillDropdown(id, items) {
+      const select = document.getElementById(id);
+      select.innerHTML = '<option value="">All</option>' +
+        items.map(item => `<option value="${item}">${item}</option>`).join('');
+    }
+
+    function applyFilters() {
+      const branch = document.getElementById('branchFilter').value;
+      const district = document.getElementById('districtFilter').value;
+      const type = document.getElementById('typeFilter').value;
+      const maxRank = parseInt(document.getElementById('rankFilter').value, 10);
+
+      const filtered = institutions.filter(inst => {
+        return (!branch || inst.Branch === branch) &&
+               (!district || inst.District === district) &&
+               (!type || inst.Type === type) &&
+               (isNaN(maxRank) || parseInt(inst.OC_BOYS, 10) <= maxRank);
+      });
+
+      const tbody = document.getElementById('resultsTable').querySelector('tbody');
+      tbody.innerHTML = '';
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No results found.</td></tr>';
+      } else {
+        filtered.forEach(inst => {
+          const row = `<tr>
+            <td>${inst.Name || ''}</td>
+            <td>${inst.branch_code || ''}</td>
+            <td>${inst.DIST || ''}</td>
+            <td>${inst.TYPE || ''}</td>
+            <td>${inst.OC_BOYS || ''}</td>
+            <td>${inst.COLLFEE || ''}</td>
+          </tr>`;
+          tbody.innerHTML += row;
+        });
+      }
+    }
+  </script>
+</body>
+</html>
