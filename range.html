@@ -113,7 +113,7 @@
     function populateFilters() {
       fillDropdown('branchFilter', getUnique('Branch'));
       fillDropdown('branchCodeFilter', getBranchCodes());
-      fillDropdown('districtFilter', getUnique('District'));
+      fillDropdown('districtFilter', getDistrictCodes());
       fillDropdown('typeFilter', getUnique('Type'));
     }
 
@@ -127,6 +127,15 @@
         'PHD', 'RBT', 'SWE'
       ];
       return branchCodes.sort();
+    }
+
+    function getDistrictCodes() {
+      const districtCodes = [
+        'EG', 'VSP', 'GTR', 'WG', 'CTR', 'VZM', 'SKL', 'ATP', 'SW', 'NLR',
+        'PKS', 'KDP', 'KNL', 'KRNL', 'PBN', 'SRI', 'CHI', 'ANK', 'SPS', 'KAK',
+        'BPT', 'BAP', 'BZA', 'KRI', 'SRK'
+      ];
+      return districtCodes.sort();
     }
 
     function getUnique(field) {
