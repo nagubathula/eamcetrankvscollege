@@ -1,227 +1,265 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Engineering Institutions Counselling Filter (XLSX)</title>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 30px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; }
-    th { background: #f2f2f2; }
-    label { margin-right: 20px; }
-    select, input[type="number"] { margin-left: 5px; }
-    .info { background: #e7f3ff; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
-  </style>
-</head>
-<body>
-  <h2>Engineering Institutions Counselling Filter (XLSX)</h2>
-  
-  <div class="info">
-    <strong>Note:</strong> 
-    <ul>
-      <li><strong>Your Rank:</strong> Enter your rank to see institutions where you're eligible for admission (institutions with closing ranks at or above your rank).</li>
-      <li><strong>Rank Range:</strong> Check the box to switch to range mode and enter min/max ranks to see all institutions with closing ranks within that range.</li>
-    </ul>
-  </div>
 
-  <label>Branch:
-    <select id="branchFilter"></select>
-  </label>
-  <label>Branch Code:
-    <select id="branchCodeFilter"></select>
-  </label>
-  <label>District:
-    <select id="districtFilter"></select>
-  </label>
-  <label>Institution Type:
-    <select id="typeFilter"></select>
-  </label>
-  <label>Your OC_BOYS Rank:
-    <input type="number" id="rankFilter" placeholder="Enter your rank">
-  </label>
-  <br><br>
-  <label>
-    <input type="checkbox" id="useRangeMode" onchange="toggleRankMode()"> Use Rank Range instead
-  </label>
-  <br><br>
-  <div id="rangeSection" style="display: none;">
-    <strong>Rank Range:</strong><br>
-    <label>Min Rank:
-      <input type="number" id="minRankFilter" placeholder="Enter min rank">
+<head>
+    <meta charset="UTF-8">
+    <title>Engineering Institutions Counselling Filter (XLSX)</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+
+        th {
+            background: #f2f2f2;
+        }
+
+        label {
+            margin-right: 20px;
+        }
+
+        select,
+        input[type="number"] {
+            margin-left: 5px;
+        }
+
+        .info {
+            background: #e7f3ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Engineering Institutions Counselling Filter (XLSX)</h2>
+
+    <div class="info">
+        <strong>Note:</strong>
+        <ul>
+            <li><strong>Your Rank:</strong> Enter your rank to see institutions where you're eligible for admission
+                (institutions with closing ranks at or above your rank).</li>
+            <li><strong>Rank Range:</strong> Check the box to switch to range mode and enter min/max ranks to see all
+                institutions with closing ranks within that range.</li>
+        </ul>
+    </div>
+
+    <label>Branch:
+        <select id="branchFilter"></select>
     </label>
-    <label>Max Rank:
-      <input type="number" id="maxRankFilter" placeholder="Enter max rank">
+    <label>Branch Code:
+        <select id="branchCodeFilter"></select>
+    </label>
+    <label>District:
+        <select id="districtFilter"></select>
+    </label>
+    <label>Institution Type:
+        <select id="typeFilter"></select>
+    </label>
+    <label>Your OC_BOYS Rank:
+        <input type="number" id="rankFilter" placeholder="Enter your rank">
     </label>
     <br><br>
-  </div>
-  <button onclick="applyFilters()">Apply Filters</button>
+    <label>
+        <input type="checkbox" id="useRangeMode" onchange="toggleRankMode()"> Use Rank Range instead
+    </label>
+    <br><br>
+    <div id="rangeSection" style="display: none;">
+        <strong>Rank Range:</strong><br>
+        <label>Min Rank:
+            <input type="number" id="minRankFilter" placeholder="Enter min rank">
+        </label>
+        <label>Max Rank:
+            <input type="number" id="maxRankFilter" placeholder="Enter max rank">
+        </label>
+        <br><br>
+    </div>
+    <button onclick="applyFilters()">Apply Filters</button>
 
-  <table id="resultsTable">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Branch</th>
-        <th>District</th>
-        <th>Type</th>
-        <th>OC_BOYS Closing Rank</th>
-        <th>Fee</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+    <table id="resultsTable">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Branch</th>
+                <th>District</th>
+                <th>Type</th>
+                <th>OC_BOYS Closing Rank</th>
+                <th>Fee</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 
-  <script>
-    let institutions = [];
+    <script>
+        let institutions = [];
 
-    function toggleRankMode() {
-      const useRange = document.getElementById('useRangeMode').checked;
-      const rankFilter = document.getElementById('rankFilter');
-      const rangeSection = document.getElementById('rangeSection');
-      const minRankFilter = document.getElementById('minRankFilter');
-      const maxRankFilter = document.getElementById('maxRankFilter');
+        function toggleRankMode() {
+            const useRange = document.getElementById('useRangeMode').checked;
+            const rankFilter = document.getElementById('rankFilter');
+            const rangeSection = document.getElementById('rangeSection');
+            const minRankFilter = document.getElementById('minRankFilter');
+            const maxRankFilter = document.getElementById('maxRankFilter');
 
-      if (useRange) {
-        // Switch to range mode
-        rangeSection.style.display = 'block';
-        rankFilter.disabled = true;
-        rankFilter.value = '';
-        rankFilter.style.backgroundColor = '#f0f0f0';
-      } else {
-        // Switch to single rank mode
-        rangeSection.style.display = 'none';
-        rankFilter.disabled = false;
-        rankFilter.style.backgroundColor = '';
-        minRankFilter.value = '';
-        maxRankFilter.value = '';
-      }
-    }
-
-    // Fetch the XLSX file automatically
-    fetch('interdata.xlsx')
-      .then(response => response.arrayBuffer())
-      .then(data => {
-        const workbook = XLSX.read(data, {type: 'array'});
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        institutions = XLSX.utils.sheet_to_json(sheet);
-
-        populateFilters();
-        applyFilters();
-      });
-
-    function populateFilters() {
-      fillDropdown('branchFilter', getUnique('Branch'));
-      fillDropdown('branchCodeFilter', getBranchCodes());
-      fillDropdown('districtFilter', getDistrictCodes());
-      fillDropdown('typeFilter', getUnique('Type'));
-    }
-
-    function getBranchCodes() {
-      const branchCodes = [
-        'AER', 'AGR', 'AIM', 'AID', 'AI', 'AUT', 'BIO', 'BDT', 'CAD', 'CAI',
-        'CBC', 'CCE', 'CCG', 'CCI', 'CHE', 'CIC', 'CIV', 'CSE', 'CSG', 'CSB',
-        'CSC', 'CSD', 'CSM', 'CSO', 'CSW', 'CST', 'CSS', 'DS', 'EBM', 'ECES',
-        'ECM', 'ECE', 'ECT', 'EEE', 'EIE', 'EVT', 'FDE', 'FDT', 'GIN', 'INF',
-        'IST', 'IOT', 'MAU', 'MAD', 'MEC', 'MIN', 'MRB', 'NAM', 'PET', 'PHM',
-        'PHD', 'RBT', 'SWE'
-      ];
-      return branchCodes.sort();
-    }
-
-    function getDistrictCodes() {
-      const districtCodes = [
-        'EG', 'VSP', 'GTR', 'WG', 'CTR', 'VZM', 'SKL', 'ATP', 'SW', 'NLR',
-        'PKS', 'KDP', 'KNL', 'KRNL', 'PBN', 'SRI', 'CHI', 'ANK', 'SPS', 'KAK',
-        'BPT', 'BAP', 'BZA', 'KRI', 'SRK'
-      ];
-      return districtCodes.sort();
-    }
-
-    function getUnique(field) {
-      const values = institutions.map(inst => inst[field]).filter(x => x !== undefined && x !== "");
-      return Array.from(new Set(values)).sort();
-    }
-
-    function fillDropdown(id, items) {
-      const select = document.getElementById(id);
-      select.innerHTML = '<option value="">All</option>' +
-        items.map(item => `<option value="${item}">${item}</option>`).join('');
-    }
-
-    function applyFilters() {
-      const branch = document.getElementById('branchFilter').value;
-      const branchCode = document.getElementById('branchCodeFilter').value;
-      const district = document.getElementById('districtFilter').value;
-      const type = document.getElementById('typeFilter').value;
-      const useRange = document.getElementById('useRangeMode').checked;
-      
-      let userRank, minRank, maxRank;
-      
-      if (useRange) {
-        minRank = parseInt(document.getElementById('minRankFilter').value, 10);
-        maxRank = parseInt(document.getElementById('maxRankFilter').value, 10);
-      } else {
-        userRank = parseInt(document.getElementById('rankFilter').value, 10);
-      }
-
-      const filtered = institutions.filter(inst => {
-        const ocBoysRank = parseInt(inst.OC_BOYS, 10);
-        
-        // Skip institutions without valid OC_BOYS rank data
-        if (isNaN(ocBoysRank)) return false;
-        
-        // Apply basic filters first
-        if (branch && inst.Branch !== branch) return false;
-        if (branchCode && inst.branch_code !== branchCode) return false;
-        if (district && inst.District !== district) return false;
-        if (type && inst.Type !== type) return false;
-        
-        // Apply OC_BOYS rank filters based on mode
-        if (useRange) {
-          // Range mode: show institutions with OC_BOYS ranks within the range
-          if (!isNaN(minRank) && !isNaN(maxRank)) {
-            return ocBoysRank >= minRank && ocBoysRank <= maxRank;
-          } else if (!isNaN(minRank)) {
-            return ocBoysRank >= minRank;
-          } else if (!isNaN(maxRank)) {
-            return ocBoysRank <= maxRank;
-          }
-        } else {
-          // Single rank mode: show institutions where user can get admission
-          if (!isNaN(userRank)) {
-            return ocBoysRank >= userRank;
-          }
+            if (useRange) {
+                // Switch to range mode
+                rangeSection.style.display = 'block';
+                rankFilter.disabled = true;
+                rankFilter.value = '';
+                rankFilter.style.backgroundColor = '#f0f0f0';
+            } else {
+                // Switch to single rank mode
+                rangeSection.style.display = 'none';
+                rankFilter.disabled = false;
+                rankFilter.style.backgroundColor = '';
+                minRankFilter.value = '';
+                maxRankFilter.value = '';
+            }
         }
-        
-        return true; // No rank filter applied
-      });
 
-      // Sort by OC_BOYS closing rank (ascending) to show best options first
-      filtered.sort((a, b) => {
-        const rankA = parseInt(a.OC_BOYS, 10) || Infinity;
-        const rankB = parseInt(b.OC_BOYS, 10) || Infinity;
-        return rankA - rankB;
-      });
+        // Fetch the XLSX file automatically
+        fetch('interdata.xlsx')
+            .then(response => response.arrayBuffer())
+            .then(data => {
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                institutions = XLSX.utils.sheet_to_json(sheet);
 
-      const tbody = document.getElementById('resultsTable').querySelector('tbody');
-      tbody.innerHTML = '';
-      if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No results found.</td></tr>';
-      } else {
-        filtered.forEach(inst => {
-          const row = `<tr>
-            <td>${inst.Name || ''}</td>
-            <td>${inst.branch_code || ''}</td>
-            <td>${inst.DIST || ''}</td>
-            <td>${inst.TYPE || ''}</td>
-            <td>${inst.OC_BOYS || ''}</td>
-            <td>${inst.COLLFEE || ''}</td>
+                populateFilters();
+                applyFilters();
+            });
+
+        function populateFilters() {
+            fillDropdown('branchFilter', getUnique('Branch'));
+            fillDropdown('branchCodeFilter', getBranchCodes());
+            fillDropdown('districtFilter', getDistrictCodes());
+            fillDropdown('typeFilter', getUnique('Type'));
+        }
+
+        function getBranchCodes() {
+            const branchCodes = [
+                'AER', 'AGR', 'AIM', 'AID', 'AI', 'AUT', 'BIO', 'BDT', 'CAD', 'CAI',
+                'CBC', 'CCE', 'CCG', 'CCI', 'CHE', 'CIC', 'CIV', 'CSE', 'CSG', 'CSB',
+                'CSC', 'CSD', 'CSM', 'CSO', 'CSW', 'CST', 'CSS', 'DS', 'EBM', 'ECES',
+                'ECM', 'ECE', 'ECT', 'EEE', 'EIE', 'EVT', 'FDE', 'FDT', 'GIN', 'INF',
+                'IST', 'IOT', 'MAU', 'MAD', 'MEC', 'MIN', 'MRB', 'NAM', 'PET', 'PHM',
+                'PHD', 'RBT', 'SWE'
+            ];
+            return branchCodes.sort();
+        }
+
+        function getDistrictCodes() {
+            const districtCodes = [
+                'EG', 'VSP', 'GTR', 'WG', 'CTR', 'VZM', 'SKL', 'ATP', 'SW', 'NLR',
+                'PKS', 'KDP', 'KNL', 'KRNL', 'PBN', 'SRI', 'CHI', 'ANK', 'SPS', 'KAK',
+                'BPT', 'BAP', 'BZA', 'KRI', 'SRK'
+            ];
+            return districtCodes.sort();
+        }
+
+        function getUnique(field) {
+            const values = institutions.map(inst => {
+                // Try multiple possible column name variations
+                return inst[field] || inst[field.toLowerCase()] || inst[field.toUpperCase()] ||
+                    inst[field.replace('_', '')] || inst[field.replace(' ', '_')];
+            }).filter(x => x !== undefined && x !== "" && x !== null);
+            return Array.from(new Set(values)).sort();
+        }
+
+        function fillDropdown(id, items) {
+            const select = document.getElementById(id);
+            select.innerHTML = '<option value="">All</option>' +
+                items.map(item => `<option value="${item}">${item}</option>`).join('');
+        }
+
+        function applyFilters() {
+            const branch = document.getElementById('branchFilter').value;
+            const branchCode = document.getElementById('branchCodeFilter').value;
+            const district = document.getElementById('districtFilter').value;
+            const type = document.getElementById('typeFilter').value;
+            const useRange = document.getElementById('useRangeMode').checked;
+
+            let userRank, minRank, maxRank;
+
+            if (useRange) {
+                minRank = parseInt(document.getElementById('minRankFilter').value, 10);
+                maxRank = parseInt(document.getElementById('maxRankFilter').value, 10);
+            } else {
+                userRank = parseInt(document.getElementById('rankFilter').value, 10);
+            }
+
+            const filtered = institutions.filter(inst => {
+                const ocBoysRank = parseInt(inst.OC_BOYS, 10);
+
+                // Skip institutions without valid OC_BOYS rank data
+                if (isNaN(ocBoysRank)) return false;
+
+                // Apply basic filters first - check multiple possible column names
+                if (branch && inst.Branch !== branch && inst.branch !== branch) return false;
+                if (branchCode && inst.branch_code !== branchCode && inst.BRANCH_CODE !== branchCode && inst.Branch_Code !== branchCode) return false;
+                if (district && inst.District !== district && inst.DIST !== district && inst.district !== district) return false;
+                if (type && inst.Type !== type && inst.TYPE !== type && inst.type !== type) return false;
+
+                // Apply OC_BOYS rank filters based on mode
+                if (useRange) {
+                    // Range mode: show institutions with OC_BOYS ranks within the range
+                    if (!isNaN(minRank) && !isNaN(maxRank)) {
+                        return ocBoysRank >= minRank && ocBoysRank <= maxRank;
+                    } else if (!isNaN(minRank)) {
+                        return ocBoysRank >= minRank;
+                    } else if (!isNaN(maxRank)) {
+                        return ocBoysRank <= maxRank;
+                    }
+                } else {
+                    // Single rank mode: show institutions where user can get admission
+                    if (!isNaN(userRank)) {
+                        return ocBoysRank >= userRank;
+                    }
+                }
+
+                return true; // No rank filter applied
+            });
+
+            // Sort by OC_BOYS closing rank (ascending) to show best options first
+            filtered.sort((a, b) => {
+                const rankA = parseInt(a.OC_BOYS, 10) || Infinity;
+                const rankB = parseInt(b.OC_BOYS, 10) || Infinity;
+                return rankA - rankB;
+            });
+
+            const tbody = document.getElementById('resultsTable').querySelector('tbody');
+            tbody.innerHTML = '';
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No results found.</td></tr>';
+            } else {
+                filtered.forEach(inst => {
+                    const row = `<tr>
+            <td>${inst.Name || inst.name || inst.NAME || ''}</td>
+            <td>${inst.branch_code || inst.BRANCH_CODE || inst.Branch_Code || ''}</td>
+            <td>${inst.DIST || inst.District || inst.district || ''}</td>
+            <td>${inst.TYPE || inst.Type || inst.type || ''}</td>
+            <td>${inst.OC_BOYS || inst.oc_boys || inst.Oc_Boys || ''}</td>
+            <td>${inst.COLLFEE || inst.Fee || inst.fee || inst.CollegeFee || ''}</td>
           </tr>`;
-          tbody.innerHTML += row;
-        });
-      }
-    }
-  </script>
+                    tbody.innerHTML += row;
+                });
+            }
+        }
+    </script>
 </body>
+
 </html>
